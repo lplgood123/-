@@ -1,71 +1,98 @@
-```yaml
 name: 吃药提醒
 
 on:
   schedule:
-    - cron: '0 0 * * *'
-    - cron: '30 1 * * *'
-    - cron: '30 10 * * *'
-    - cron: '30 14 * * *'
+    - cron: '0 0 * * *'    # 08:00 北京时间
+    - cron: '30 1 * * *'   # 09:30 北京时间
+    - cron: '30 10 * * *'  # 18:30 北京时间
+    - cron: '30 14 * * *'  # 22:30 北京时间
   workflow_dispatch:
 
 jobs:
   remind:
     runs-on: ubuntu-latest
     steps:
-      - name: 早上8点提醒
+      - name: 早上8点提醒（查表获取优甲乐剂量）
         if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          python3 -c "
+          python3 << 'EOF'
           import urllib.request
           import json
+          import datetime
+          import os
+          
+          # 获取今天的日期
+          today = datetime.datetime.now()
+          day_of_year = (today - datetime.datetime(2026, 2, 12)).days
+          is_even = day_of_year % 2 == 0
+          dose = "💊 1片" if is_even else "🔪 半片"
+          
+          message = f"⏰ 【早上8点 - 空腹服药】\\n{dose} 优甲乐\\n💊 安琪坦 塞1粒\\n\\n@LiPeilin 记得空腹吃药哦！"
+          
           data = json.dumps({
-            'msg_type': 'text',
-            'content': {'text': '⏰ 【早上8点 - 空腹服药】\n💊 优甲乐 1片（单号日）/半片（双号日）\n💊 安琪坦 塞1粒\n\n记得空腹吃药哦！'}
+              "msg_type": "text",
+              "content": {"text": message}
           }).encode()
-          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          
+          webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/2cf4fade-f78e-4387-99ab-293745ca28c1"
+          req = urllib.request.Request(webhook, data=data, headers={'Content-Type': 'application/json'})
           urllib.request.urlopen(req)
-          "
+          print(f"Sent: {message}")
+          EOF          
       
       - name: 早上9点半提醒
         if: github.event.schedule == '30 1 * * *'
         run: |
-          python3 -c "
+          python3 << 'EOF'
           import urllib.request
           import json
+          
+          message = "⏰ 【早上9点半 - 饭后服药】\\n💊 爱乐维 1粒\\n💊 维生素D 5粒\\n💊 DHA 2粒\\n💊 免疫球蛋白 2粒\\n💊 地屈孕酮 2粒\\n💊 小红片 1片\\n\\n@LiPeilin 饭后药别忘了！"
+          
           data = json.dumps({
-            'msg_type': 'text',
-            'content': {'text': '⏰ 【早上9点半 - 饭后服药】\n💊 爱乐维 1粒\n💊 维生素D 5粒\n💊 DHA 2粒\n💊 免疫球蛋白 2粒\n💊 地屈孕酮 2粒\n💊 小红片 1片\n\n饭后药别忘了！'}
+              "msg_type": "text",
+              "content": {"text": message}
           }).encode()
-          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          
+          webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/2cf4fade-f78e-4387-99ab-293745ca28c1"
+          req = urllib.request.Request(webhook, data=data, headers={'Content-Type': 'application/json'})
           urllib.request.urlopen(req)
-          "
+          EOF          
       
       - name: 晚上6点半提醒
         if: github.event.schedule == '30 10 * * *'
         run: |
-          python3 -c "
+          python3 << 'EOF'
           import urllib.request
           import json
+          
+          message = "⏰ 【晚上6点半 - 晚饭后服药】\\n💊 地屈孕酮 2片\\n💊 补佳乐 1片\\n💊 小红片 1片\\n\\n@LiPeilin 晚饭后记得吃药！"
+          
           data = json.dumps({
-            'msg_type': 'text',
-            'content': {'text': '⏰ 【晚上6点半 - 晚饭后服药】\n💊 地屈孕酮 2片\n💊 补佳乐 1片\n💊 小红片 1片\n\n晚饭后记得吃药！'}
+              "msg_type": "text",
+              "content": {"text": message}
           }).encode()
-          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          
+          webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/2cf4fade-f78e-4387-99ab-293745ca28c1"
+          req = urllib.request.Request(webhook, data=data, headers={'Content-Type': 'application/json'})
           urllib.request.urlopen(req)
-          "
+          EOF          
       
       - name: 晚上10点半提醒
         if: github.event.schedule == '30 14 * * *'
         run: |
-          python3 -c "
+          python3 << 'EOF'
           import urllib.request
           import json
+          
+          message = "⏰ 【晚上10点半 - 睡前服药】\\n💊 安琪坦 塞1粒\\n\\n@LiPeilin 睡前药别忘啦，晚安～"
+          
           data = json.dumps({
-            'msg_type': 'text',
-            'content': {'text': '⏰ 【晚上10点半 - 睡前服药】\n💊 安琪坦 塞1粒\n\n睡前药别忘啦，晚安～'}
+              "msg_type": "text",
+              "content": {"text": message}
           }).encode()
-          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          
+          webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/2cf4fade-f78e-4387-99ab-293745ca28c1"
+          req = urllib.request.Request(webhook, data=data, headers={'Content-Type': 'application/json'})
           urllib.request.urlopen(req)
-          "
-```
+          EOF          
