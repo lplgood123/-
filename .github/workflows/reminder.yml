@@ -1,3 +1,4 @@
+```yaml
 name: 吃药提醒
 
 on:
@@ -8,9 +9,6 @@ on:
     - cron: '30 14 * * *'
   workflow_dispatch:
 
-env:
-  WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
-
 jobs:
   remind:
     runs-on: ubuntu-latest
@@ -18,27 +16,56 @@ jobs:
       - name: 早上8点提醒
         if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -X POST "$WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{"msg_type":"text","content":{"text":"早上8点吃药提醒"}}'          
+          python3 -c "
+          import urllib.request
+          import json
+          data = json.dumps({
+            'msg_type': 'text',
+            'content': {'text': '⏰ 【早上8点 - 空腹服药】\n💊 优甲乐 1片（单号日）/半片（双号日）\n💊 安琪坦 塞1粒\n\n记得空腹吃药哦！'}
+          }).encode()
+          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          urllib.request.urlopen(req)
+          "
       
       - name: 早上9点半提醒
         if: github.event.schedule == '30 1 * * *'
         run: |
-          curl -X POST "$WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{"msg_type":"text","content":{"text":"早上9点半吃药提醒"}}'          
+          python3 -c "
+          import urllib.request
+          import json
+          data = json.dumps({
+            'msg_type': 'text',
+            'content': {'text': '⏰ 【早上9点半 - 饭后服药】\n💊 爱乐维 1粒\n💊 维生素D 5粒\n💊 DHA 2粒\n💊 免疫球蛋白 2粒\n💊 地屈孕酮 2粒\n💊 小红片 1片\n\n饭后药别忘了！'}
+          }).encode()
+          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          urllib.request.urlopen(req)
+          "
       
       - name: 晚上6点半提醒
         if: github.event.schedule == '30 10 * * *'
         run: |
-          curl -X POST "$WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{"msg_type":"text","content":{"text":"晚上6点半吃药提醒"}}'          
+          python3 -c "
+          import urllib.request
+          import json
+          data = json.dumps({
+            'msg_type': 'text',
+            'content': {'text': '⏰ 【晚上6点半 - 晚饭后服药】\n💊 地屈孕酮 2片\n💊 补佳乐 1片\n💊 小红片 1片\n\n晚饭后记得吃药！'}
+          }).encode()
+          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          urllib.request.urlopen(req)
+          "
       
       - name: 晚上10点半提醒
         if: github.event.schedule == '30 14 * * *'
         run: |
-          curl -X POST "$WEBHOOK" \
-            -H "Content-Type: application/json" \
-            -d '{"msg_type":"text","content":{"text":"晚上10点半吃药提醒"}}'          
+          python3 -c "
+          import urllib.request
+          import json
+          data = json.dumps({
+            'msg_type': 'text',
+            'content': {'text': '⏰ 【晚上10点半 - 睡前服药】\n💊 安琪坦 塞1粒\n\n睡前药别忘啦，晚安～'}
+          }).encode()
+          req = urllib.request.Request('${{ secrets.FEISHU_WEBHOOK }}', data=data, headers={'Content-Type': 'application/json'})
+          urllib.request.urlopen(req)
+          "
+```
