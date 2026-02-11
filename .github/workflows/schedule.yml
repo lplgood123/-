@@ -1,0 +1,65 @@
+name: Medicine Reminder
+
+on:
+  schedule:
+    # ⚠️ GitHub 使用 UTC 时间 (北京时间减 8 小时)
+    # 每天运行 4 次：
+    
+    # 1. 北京 08:00 (UTC 00:00) -> 优甲乐/安琪坦
+    - cron: '0 0 * * *'
+    
+    # 2. 北京 09:30 (UTC 01:30) -> 饭后大把药
+    - cron: '30 1 * * *'
+    
+    # 3. 北京 18:30 (UTC 10:30) -> 晚饭后药
+    - cron: '30 10 * * *'
+    
+    # 4. 北京 22:30 (UTC 14:30) -> 睡前药
+    - cron: '30 14 * * *'
+
+  # 允许手动点击按钮测试
+  workflow_dispatch:
+
+jobs:
+  run-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install libraries
+        run: pip install requests pytz
+
+      - name: Run Reminder Script
+        env:
+          # 引用我们在 Settings 里设置的 Webhook
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+        run: |
+          # 获取当前 UTC 小时
+          current_hour=$(date -u +%H)
+          
+          # 判断当前时间，执行对应任务
+          # 逻辑：UTC 0点对应 morning_8，UTC 1点对应 morning_930...
+          
+          if [ "$current_hour" == "00" ]; then
+            python main.py morning_8
+            
+          elif [ "$current_hour" == "01" ]; then
+            python main.py morning_930
+            
+          elif [ "$current_hour" == "10" ]; then
+            python main.py evening_1830
+            
+          elif [ "$current_hour" == "14" ]; then
+            python main.py night_2230
+            
+          else
+            # 如果是手动点击测试 (workflow_dispatch)，默认测试早8点任务
+            echo "Manual trigger or off-schedule run detected."
+            python main.py morning_8
+          fi
