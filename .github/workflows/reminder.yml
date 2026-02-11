@@ -1,0 +1,41 @@
+name: 吃药提醒
+
+on:
+  schedule:
+    - cron: '0 0 * * *'    # 08:00 北京时间
+    - cron: '30 1 * * *'   # 09:30 北京时间  
+    - cron: '30 10 * * *'  # 18:30 北京时间
+    - cron: '30 14 * * *'  # 22:30 北京时间
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 早上8点提醒
+        if: github.event.schedule == '0 0 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -X POST "${{ secrets.FEISHU_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{"msg_type":"text","content":{"text":"⏰ 【早上8点 - 空腹服药】\n💊 优甲乐 1片（单号日）/半片（双号日）\n💊 安琪坦 塞1粒\n\n@LiPeilin 记得空腹吃药哦！"}}'          
+      
+      - name: 早上9点半提醒
+        if: github.event.schedule == '30 1 * * *'
+        run: |
+          curl -X POST "${{ secrets.FEISHU_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{"msg_type":"text","content":{"text":"⏰ 【早上9点半 - 饭后服药】\n💊 爱乐维 1粒\n💊 维生素D 5粒\n💊 DHA 2粒\n💊 免疫球蛋白 2粒\n💊 地屈孕酮 2粒\n💊 小红片 1片\n\n@LiPeilin 饭后药别忘了！"}}'          
+      
+      - name: 晚上6点半提醒
+        if: github.event.schedule == '30 10 * * *'
+        run: |
+          curl -X POST "${{ secrets.FEISHU_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{"msg_type":"text","content":{"text":"⏰ 【晚上6点半 - 晚饭后服药】\n💊 地屈孕酮 2片\n💊 补佳乐 1片\n💊 小红片 1片\n\n@LiPeilin 晚饭后记得吃药！"}}'          
+      
+      - name: 晚上10点半提醒
+        if: github.event.schedule == '30 14 * * *'
+        run: |
+          curl -X POST "${{ secrets.FEISHU_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{"msg_type":"text","content":{"text":"⏰ 【晚上10点半 - 睡前服药】\n💊 安琪坦 塞1粒\n\n@LiPeilin 睡前药别忘啦，晚安～"}}'          
