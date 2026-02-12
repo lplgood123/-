@@ -2,30 +2,33 @@ name: Medicine Reminder
 
 on:
   schedule:
-    # ⚠️ UTC时间 = 北京时间 - 8小时
+    # -------------------------------------------------------
+    # ⚠️ 核心时间表 (UTC时间 = 北京时间 - 8小时)
+    # -------------------------------------------------------
     
-    # --- 早上 08:00 档 ---
-    - cron: '0 0 * * *'   # 08:00 提醒
-    - cron: '30 0 * * *'  # 08:30 检查 (新增)
+    # === 早上 8点档 ===
+    - cron: '0 0 * * *'   # 北京 08:00 (提醒)
+    - cron: '30 0 * * *'  # 北京 08:30 (查岗)
     
-    # --- 上午 09:30 档 ---
-    - cron: '30 1 * * *'  # 09:30 提醒
-    - cron: '0 2 * * *'   # 10:00 检查 (新增)
+    # === 上午 9点档 ===
+    - cron: '30 1 * * *'  # 北京 09:30 (提醒)
+    - cron: '0 2 * * *'   # 北京 10:00 (查岗)
     
-    # --- 晚上 18:30 档 ---
-    - cron: '30 10 * * *' # 18:30 提醒
-    - cron: '0 11 * * *'  # 19:00 检查 (新增)
+    # === 晚上 6点档 ===
+    - cron: '30 10 * * *' # 北京 18:30 (提醒)
+    - cron: '0 11 * * *'  # 北京 19:00 (查岗)
     
-    # --- 晚上 22:30 档 ---
-    - cron: '30 14 * * *' # 22:30 提醒
-    - cron: '0 15 * * *'  # 23:00 检查 (新增)
+    # === 晚上 10点档 ===
+    - cron: '30 14 * * *' # 北京 22:30 (提醒)
+    - cron: '0 15 * * *'  # 北京 23:00 (查岗)
 
+  # 手动测试按钮
   workflow_dispatch:
     inputs:
       test_type:
-        description: 'Test Type'
+        description: '输入指令 (如 morning_8_check)'
         required: true
-        default: 'morning_8_check'
+        default: 'morning_8'
 
 jobs:
   run-reminder:
@@ -42,54 +45,63 @@ jobs:
       - name: Install libraries
         run: pip install requests pytz
 
-      - name: Run Reminder Script
+      - name: Run Script
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: |
-          # 获取当前 UTC 小时和分钟
+          # 获取当前 UTC 时间的小时 (h) 和 分钟 (m)
+          # %-H 和 %-M 会去掉前导零 (例如 08 变成 8)，方便数字比较
           h=$(date -u +%-H)
           m=$(date -u +%-M)
           
+          echo "当前 UTC 时间: $h 时 $m 分"
+
+          # ----------------------------------------
           # 手动测试通道
+          # ----------------------------------------
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+             echo "检测到手动测试..."
              python main.py ${{ github.event.inputs.test_type }}
              exit 0
           fi
 
-          # --- 智能时间判断逻辑 ---
+          # ----------------------------------------
+          # 自动判定逻辑 (根据当前时间决定发哪条消息)
+          # ----------------------------------------
 
-          # 1. 早上 08:00 - 08:59 (UTC Hour 0)
+          # 1. 早上 08:00 档 (UTC 0点)
           if [ "$h" -eq 0 ]; then
-             if [ "$m" -lt 20 ]; then
+             # 如果是前半小时(0-25分)运行，就是提醒；后半小时就是查岗
+             if [ "$m" -lt 25 ]; then
                 python main.py morning_8
              else
                 python main.py morning_8_check
              fi
           
-          # 2. 上午 09:30 (UTC Hour 1)
+          # 2. 上午 09:30 档 (UTC 1点) -> 提醒
           elif [ "$h" -eq 1 ]; then
              python main.py morning_930
-          
-          # 3. 上午 10:00 (UTC Hour 2) - 检查
+
+          # 3. 上午 10:00 档 (UTC 2点) -> 查岗
           elif [ "$h" -eq 2 ]; then
              python main.py morning_930_check
 
-          # 4. 晚上 18:30 (UTC Hour 10)
+          # 4. 晚上 18:30 档 (UTC 10点) -> 提醒
           elif [ "$h" -eq 10 ]; then
              python main.py evening_1830
 
-          # 5. 晚上 19:00 (UTC Hour 11) - 检查
+          # 5. 晚上 19:00 档 (UTC 11点) -> 查岗
           elif [ "$h" -eq 11 ]; then
              python main.py evening_1830_check
 
-          # 6. 晚上 22:30 (UTC Hour 14)
+          # 6. 晚上 22:30 档 (UTC 14点) -> 提醒
           elif [ "$h" -eq 14 ]; then
              python main.py night_2230
 
-          # 7. 晚上 23:00 (UTC Hour 15) - 检查
+          # 7. 晚上 23:00 档 (UTC 15点) -> 查岗
           elif [ "$h" -eq 15 ]; then
              python main.py night_2230_check
-             
+
           else
-             echo "非预定时间运行，跳过。"
+             echo "当前时间不在计划范围内，跳过执行。"
           fi
