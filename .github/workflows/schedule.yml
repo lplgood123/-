@@ -2,23 +2,30 @@ name: Medicine Reminder
 
 on:
   schedule:
-    # ⚠️ GitHub 使用 UTC 时间 (北京时间减 8 小时)
-    # 每天运行 4 次：
+    # ⚠️ UTC时间 = 北京时间 - 8小时
     
-    # 1. 北京 08:00 (UTC 00:00) -> 优甲乐/安琪坦
-    - cron: '0 0 * * *'
+    # --- 早上 08:00 档 ---
+    - cron: '0 0 * * *'   # 08:00 提醒
+    - cron: '30 0 * * *'  # 08:30 检查 (新增)
     
-    # 2. 北京 09:30 (UTC 01:30) -> 饭后大把药
-    - cron: '30 1 * * *'
+    # --- 上午 09:30 档 ---
+    - cron: '30 1 * * *'  # 09:30 提醒
+    - cron: '0 2 * * *'   # 10:00 检查 (新增)
     
-    # 3. 北京 18:30 (UTC 10:30) -> 晚饭后药
-    - cron: '30 10 * * *'
+    # --- 晚上 18:30 档 ---
+    - cron: '30 10 * * *' # 18:30 提醒
+    - cron: '0 11 * * *'  # 19:00 检查 (新增)
     
-    # 4. 北京 22:30 (UTC 14:30) -> 睡前药
-    - cron: '30 14 * * *'
+    # --- 晚上 22:30 档 ---
+    - cron: '30 14 * * *' # 22:30 提醒
+    - cron: '0 15 * * *'  # 23:00 检查 (新增)
 
-  # 允许手动点击按钮测试
   workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Test Type'
+        required: true
+        default: 'morning_8_check'
 
 jobs:
   run-reminder:
@@ -37,29 +44,52 @@ jobs:
 
       - name: Run Reminder Script
         env:
-          # 引用我们在 Settings 里设置的 Webhook
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
         run: |
-          # 获取当前 UTC 小时
-          current_hour=$(date -u +%H)
+          # 获取当前 UTC 小时和分钟
+          h=$(date -u +%-H)
+          m=$(date -u +%-M)
           
-          # 判断当前时间，执行对应任务
-          # 逻辑：UTC 0点对应 morning_8，UTC 1点对应 morning_930...
+          # 手动测试通道
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+             python main.py ${{ github.event.inputs.test_type }}
+             exit 0
+          fi
+
+          # --- 智能时间判断逻辑 ---
+
+          # 1. 早上 08:00 - 08:59 (UTC Hour 0)
+          if [ "$h" -eq 0 ]; then
+             if [ "$m" -lt 20 ]; then
+                python main.py morning_8
+             else
+                python main.py morning_8_check
+             fi
           
-          if [ "$current_hour" == "00" ]; then
-            python main.py morning_8
-            
-          elif [ "$current_hour" == "01" ]; then
-            python main.py morning_930
-            
-          elif [ "$current_hour" == "10" ]; then
-            python main.py evening_1830
-            
-          elif [ "$current_hour" == "14" ]; then
-            python main.py night_2230
-            
+          # 2. 上午 09:30 (UTC Hour 1)
+          elif [ "$h" -eq 1 ]; then
+             python main.py morning_930
+          
+          # 3. 上午 10:00 (UTC Hour 2) - 检查
+          elif [ "$h" -eq 2 ]; then
+             python main.py morning_930_check
+
+          # 4. 晚上 18:30 (UTC Hour 10)
+          elif [ "$h" -eq 10 ]; then
+             python main.py evening_1830
+
+          # 5. 晚上 19:00 (UTC Hour 11) - 检查
+          elif [ "$h" -eq 11 ]; then
+             python main.py evening_1830_check
+
+          # 6. 晚上 22:30 (UTC Hour 14)
+          elif [ "$h" -eq 14 ]; then
+             python main.py night_2230
+
+          # 7. 晚上 23:00 (UTC Hour 15) - 检查
+          elif [ "$h" -eq 15 ]; then
+             python main.py night_2230_check
+             
           else
-            # 如果是手动点击测试 (workflow_dispatch)，默认测试早8点任务
-            echo "Manual trigger or off-schedule run detected."
-            python main.py morning_8
+             echo "非预定时间运行，跳过。"
           fi
